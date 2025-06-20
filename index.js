@@ -23,7 +23,20 @@ app.post("/getDiseaseDetails", async (req, res) => {
   }
 
   try {
-    const prompt = `Suggest common medicines and related symptoms for the disease: ${disease}. Provide output in JSON format with "symptoms" and "medicines".`;
+    const prompt = `
+You are a medical assistant. Suggest 3 commonly prescribed medicines and key symptoms for the disease "${disease}" (in India). 
+Provide the response strictly in this JSON format:
+
+{
+  "symptoms": [ "symptom1", "symptom2", "symptom3" ],
+  "medicines": [
+    { "name": "Medicine Name 1", "dosage": "Dosage instructions" },
+    { "name": "Medicine Name 2", "dosage": "Dosage instructions" },
+    { "name": "Medicine Name 3", "dosage": "Dosage instructions" }
+  ]
+}
+Do not include any explanation or text outside this JSON object.
+`;
 
     const response = await axios.post(
       "https://api.cohere.ai/v1/generate",
@@ -31,7 +44,8 @@ app.post("/getDiseaseDetails", async (req, res) => {
         model: "command",
         prompt,
         max_tokens: 300,
-        temperature: 0.7,
+        temperature: 0.4,
+        stop_sequences: ["\n\n"]
       },
       {
         headers: {
@@ -41,7 +55,7 @@ app.post("/getDiseaseDetails", async (req, res) => {
       }
     );
 
-    const generatedText = response.data.generations[0].text;
+    const generatedText = response.data.generations[0].text.trim();
     const match = generatedText.match(/\{[\s\S]*\}/);
     const jsonData = match ? JSON.parse(match[0]) : { message: generatedText };
 
